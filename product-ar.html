@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Product Demo AR</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://unpkg.com/aframe-ar/dist/aframe-ar.min.js"></script>
+
+    <style>
+        body { margin: 0; }
+        .ar-ui-container {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            z-index: 1000;
+            color: white;
+            font-family: sans-serif;
+            background-color: rgba(0,0,0,0.7);
+            flex-direction: column;
+        }
+        #ar-instructions {
+            position: fixed;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: white;
+            font-family: sans-serif;
+            background-color: rgba(0,0,0,0.5);
+            padding: 10px 0;
+            z-index: 1001;
+        }
+        .hidden { display: none; }
+        .info-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 2000;
+            font-family: sans-serif;
+            font-size: 1.2rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loader" class="ar-ui-container">
+        <h1><i class="fas fa-spinner fa-spin"></i> Loading AR Experience...</h1>
+    </div>
+
+    <div id="ar-instructions" class="hidden">
+        <p>Point your camera at the HIRO marker.</p>
+    </div>
+    
+    <div id="info-overlay" class="info-box hidden"></div>
+    
+    <a-scene embedded arjs='sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;'>
+        
+        <a-marker preset="hiro" id="marker">
+            <a-entity id="product-model"></a-entity>
+        </a-marker>
+
+        <a-entity camera></a-entity>
+    </a-scene>
+    
+    <script type="module">
+        import './product-data.js';
+
+        const loader = document.getElementById('loader');
+        const instructions = document.getElementById('ar-instructions');
+        const marker = document.getElementById('marker');
+        const scene = document.querySelector('a-scene');
+        const productModelContainer = document.getElementById('product-model');
+        const infoOverlay = document.getElementById('info-overlay');
+
+        // Show instructions when the marker is found
+        marker.addEventListener('markerFound', () => {
+            instructions.classList.add('hidden');
+        });
+        
+        // Hide instructions when the marker is lost
+        marker.addEventListener('markerLost', () => {
+            instructions.classList.remove('hidden');
+        });
+
+        async function initializeAr() {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const productId = params.get('id');
+                if (!productId) throw new Error("No Product ID found in URL.");
+
+                const product = await window.ProductData.getProduct(productId);
+                if (!product) throw new Error("Product data could not be loaded.");
+
+                // Load the 3D model
+                productModelContainer.setAttribute('gltf-model', `url(${product.modelUrl})`);
+                productModelContainer.setAttribute('scale', '0.5 0.5 0.5'); // You can adjust this
+
+                // Add interactive hotspots
+                product.hotspots.forEach(hotspot => {
+                    let hotspotEntity = document.createElement('a-entity');
+                    hotspotEntity.setAttribute('position', hotspot.position);
+                    hotspotEntity.setAttribute('class', 'hotspot');
+                    
+                    let hotspotText = document.createElement('a-entity');
+                    hotspotText.setAttribute('text', {
+                        value: hotspot.text,
+                        color: hotspot.color,
+                        align: 'center',
+                        width: 1.5,
+                        wrapCount: 20
+                    });
+                    hotspotText.setAttribute('rotation', '-90 0 0'); // Ensure text is visible
+                    hotspotEntity.appendChild(hotspotText);
+                    
+                    productModelContainer.appendChild(hotspotEntity);
+
+                    // Add a click listener to each hotspot
+                    hotspotEntity.addEventListener('click', () => {
+                        infoOverlay.textContent = hotspot.text;
+                        infoOverlay.classList.remove('hidden');
+                        setTimeout(() => infoOverlay.classList.add('hidden'), 3000);
+                    });
+                });
+
+            } catch (error) {
+                loader.innerHTML = `<h1>Error: ${error.message}</h1><p>Please check the console for details.</p>`;
+                console.error("AR Initialization Error:", error);
+            }
+        }
+        
+        scene.addEventListener('loaded', () => {
+            loader.classList.add('hidden');
+            instructions.classList.remove('hidden');
+            initializeAr();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mira - WebAR Creation Hub</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Roboto+Mono:wght@400&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <header class="header">
+            <h1 class="logo">Mira</h1>
+            <i id="hamburger-icon" class="fas fa-bars hamburger"></i>
+            <nav>
+                <ul id="nav-menu" class="nav-menu">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="dashboard.html">My Experiences</a></li>
+                    <li><a href="#" id="sign-out-btn">Sign Out</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <main class="card fade-in-up" id="main-content">
+            <h2>Create New AR Experience</h2>
+            <p>Select a feature to get started.</p>
+            <div class="feature-grid">
+                <div class="feature-card" data-feature="text">
+                    <i class="fas fa-font"></i>
+                    <h3>AR Text</h3>
+                    <p>Place simple text in the world.</p>
+                </div>
+                <div class="feature-card" data-feature="model">
+                    <i class="fas fa-cube"></i>
+                    <h3>3D Model</h3>
+                    <p>View a .glb or .gltf model.</p>
+                </div>
+                <div class="feature-card" data-feature="video">
+                    <i class="fas fa-video"></i>
+                    <h3>AR Video</h3>
+                    <p>Play a video on a surface.</p>
+                </div>
+                <div class="feature-card" data-feature="portal">
+                    <i class="fas fa-dungeon"></i>
+                    <h3>Immersive Portal</h3>
+                    <p>Step into a 360° image.</p>
+                </div>
+                <div class="feature-card" data-feature="face">
+                    <i class="fas fa-smile"></i>
+                    <h3>Face Filter</h3>
+                    <p>Apply an effect to your face.</p>
+                </div>
+            </div>
+        </main>
+
+        <div class="card hidden" id="result-card">
+            <h2>Your Experience is Ready!</h2>
+            <p>Scan the QR code or share the link below.</p>
+            <div id="qrCode" class="qr-code"></div>
+            <div class="url-container">
+                <span id="urlDisplay"></span>
+                <button class="btn btn-secondary" onclick="copyToClipboard()"><i class="fas fa-copy"></i></button>
+            </div>
+            <div class="card-actions">
+                <button class="btn" onclick="openARExperience()"><i class="fas fa-external-link-alt"></i> Open</button>
+                <button class="btn btn-primary" onclick="resetUpload()"><i class="fas fa-plus"></i> Create New</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script type="module">
+        // Firebase and Data Layer Imports
+        import { auth } from './firebase-config.js';
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+        import './ar-data.js';
+
+        // DOM Elements
+        const mainContent = document.getElementById('main-content');
+        const resultCard = document.getElementById('result-card');
+        const urlDisplay = document.getElementById('urlDisplay');
+        const qrCodeDiv = document.getElementById('qrCode');
+        const signOutBtn = document.getElementById('sign-out-btn');
+        const hamburgerIcon = document.getElementById('hamburger-icon');
+        const navMenu = document.getElementById('nav-menu');
+        const toastContainer = document.getElementById('toast-container');
+
+        // --- Core App Logic ---
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // 1. Authentication Check
+            onAuthStateChanged(auth, (user) => {
+                if (!user) {
+                    window.location.href = 'get-started.html';
+                }
+            });
+
+            // 2. Navigation Logic
+            signOutBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                try {
+                    await signOut(auth);
+                    // onAuthStateChanged will handle the redirect
+                } catch (error) {
+                    console.error("Sign out error", error);
+                    showToast("Error signing out.");
+                }
+            });
+
+            hamburgerIcon.addEventListener('click', () => {
+                navMenu.classList.toggle('active');
+            });
+
+            // 3. UI Manager Logic
+            initializeUIManager();
+        });
+
+        function initializeUIManager() {
+            const featureCards = document.querySelectorAll('.feature-card');
+            featureCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    const featureType = card.dataset.feature;
+                    renderFeatureUI(featureType);
+                });
+            });
+        }
+        
+        function renderFeatureUI(featureType) {
+            let uiHtml = '';
+            switch (featureType) {
+                case 'text':
+                    uiHtml = `
+                        <h2>Create AR Text</h2>
+                        <div class="form-group">
+                            <label for="ar-text-input">Text</label>
+                            <input type="text" id="ar-text-input" placeholder="Hello, WebAR!">
+                        </div>
+                        <div class="form-group">
+                            <label for="ar-text-color">Color</label>
+                            <input type="color" id="ar-text-color" value="#FFFFFF">
+                        </div>
+                    `;
+                    break;
+                case 'model':
+                case 'video':
+                case 'portal':
+                case 'face':
+                    const acceptedFiles = {
+                        model: '.glb,.gltf',
+                        video: '.mp4',
+                        portal: '.jpg,.jpeg,.png',
+                        face: '.glb,.gltf'
+                    };
+                    uiHtml = `
+                        <h2>Upload ${featureType.charAt(0).toUpperCase() + featureType.slice(1)} File</h2>
+                        <div class="form-group">
+                            <label for="fileInput" class="file-upload-label">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <span>Choose a file...</span>
+                            </label>
+                            <input type="file" id="fileInput" accept="${acceptedFiles[featureType]}">
+                            <p id="file-name-display"></p>
+                        </div>
+                    `;
+                    break;
+            }
+
+            mainContent.innerHTML = `
+                ${uiHtml}
+                <div class="card-actions">
+                    <button class="btn" onclick="location.reload()"><i class="fas fa-arrow-left"></i> Back</button>
+                    <button id="createBtn" class="btn btn-primary">Create <i class="fas fa-magic"></i></button>
+                </div>
+            `;
+            
+            // Add event listeners for the new UI
+            document.getElementById('createBtn').addEventListener('click', () => processExperience(featureType));
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput) {
+                fileInput.addEventListener('change', () => {
+                    document.getElementById('file-name-display').textContent = fileInput.files[0]?.name || '';
+                });
+            }
+        }
+
+        async function processExperience(featureType) {
+            const createBtn = document.getElementById('createBtn');
+            createBtn.classList.add('loading');
+            createBtn.disabled = true;
+
+            let experienceData = {};
+            let files = [];
+            let targetPage = 'ar.html';
+
+            try {
+                switch (featureType) {
+                    case 'text':
+                        const text = document.getElementById('ar-text-input').value;
+                        if (!text) throw new Error('Please enter some text.');
+                        experienceData = {
+                            fileName: `AR Text: "${text.substring(0, 15)}..."`,
+                            type: 'text',
+                            textData: { content: text, color: document.getElementById('ar-text-color').value }
+                        };
+                        break;
+                    
+                    default: // Handles model, video, portal, face
+                        const fileInput = document.getElementById('fileInput');
+                        if (fileInput.files.length === 0) throw new Error('Please select a file.');
+                        files = Array.from(fileInput.files);
+                        experienceData = { fileName: files[0].name, type: featureType };
+                        if (featureType === 'face') targetPage = 'ar-face.html';
+                        break;
+                }
+                
+                const experienceId = await window.MiraData.saveExperience(experienceData, files);
+                const arUrl = `${window.location.origin}/${targetPage}?id=${experienceId}`;
+                showResultCard(arUrl);
+
+            } catch (error) {
+                showToast(error.message);
+                createBtn.classList.remove('loading');
+                createBtn.disabled = false;
+            }
+        }
+
+        function showResultCard(url) {
+            mainContent.classList.add('hidden');
+            resultCard.classList.remove('hidden');
+            resultCard.classList.add('fade-in-up');
+            urlDisplay.textContent = url;
+            qrCodeDiv.innerHTML = '';
+            new QRCode(qrCodeDiv, { text: url, width: 128, height: 128, colorDark : "#121212", colorLight : "#ffffff" });
+        }
+        
+        // --- Utility Functions (exposed to window for onclick) ---
+        window.copyToClipboard = () => {
+            navigator.clipboard.writeText(urlDisplay.textContent).then(() => showToast('Link copied!'));
+        };
+        window.openARExperience = () => window.open(urlDisplay.textContent, '_blank');
+        window.resetUpload = () => location.reload();
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            toastContainer.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                toast.addEventListener('transitionend', () => toast.remove());
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

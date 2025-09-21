@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing - Mira AR</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- 1. Global Styles & Variables --- */
+        :root {
+            --bg-dark: #0a0a1a;
+            --card-bg: #13132e;
+            --primary-accent: #0077ff;
+            --primary-hover: #0056b3;
+            --popular-glow: rgba(0, 119, 255, 0.3);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0c0;
+            --border-color: #2a2a5a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            display: flex;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        /* --- 2. Header & Toggle Switch --- */
+        .pricing-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .pricing-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .pricing-header p {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+        }
+        
+        .toggle-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 40px;
+            font-weight: 600;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary-accent);
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        
+        .save-badge {
+            background-color: rgba(0, 119, 255, 0.2);
+            color: var(--primary-accent);
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        /* --- 3. Pricing Grid & Cards --- */
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        .pricing-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .pricing-card.popular {
+            border-color: var(--primary-accent);
+            box-shadow: 0 0 20px var(--popular-glow);
+            transform: scale(1.05);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .popular-tag {
+            position: absolute;
+            top: 15px;
+            right: -40px;
+            background-color: var(--primary-accent);
+            color: white;
+            padding: 5px 40px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            transform: rotate(45deg);
+        }
+
+        .pricing-card h2 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .pricing-card .price {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .pricing-card .price .currency-symbol {
+            font-size: 1.5rem;
+            font-weight: 500;
+            vertical-align: super;
+            margin-right: 5px;
+        }
+
+        .pricing-card .billing-period {
+            color: var(--text-secondary);
+            margin-bottom: 25px;
+        }
+
+        .pricing-card .features {
+            list-style: none;
+            margin-bottom: 30px;
+            flex-grow: 1; /* Pushes button to the bottom */
+        }
+
+        .pricing-card .features li {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .pricing-card .features li::before {
+            content: '✓';
+            color: var(--primary-accent);
+            font-weight: bold;
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+        
+        .btn {
+            display: block;
+            background-color: var(--primary-accent);
+            color: var(--text-primary);
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .pricing-card:not(.popular) .btn {
+            background: none;
+            border: 1px solid var(--primary-accent);
+        }
+        .pricing-card:not(.popular) .btn:hover {
+            background: var(--primary-accent);
+        }
+
+
+        /* --- 4. FAQ Section --- */
+        .faq-section {
+            margin-top: 80px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .faq-section h2 {
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 2rem;
+        }
+
+        .faq-item {
+            border-bottom: 1px solid var(--border-color);
+            padding: 20px 0;
+        }
+
+        .faq-item summary {
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            list-style: none; /* Removes default triangle */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .faq-item summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .faq-item summary::after {
+            content: '+';
+            font-size: 1.5rem;
+            transition: transform 0.3s;
+        }
+
+        .faq-item[open] summary::after {
+            content: '−';
+            transform: rotate(180deg);
+        }
+
+        .faq-item p {
+            margin-top: 15px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        
+        /* --- 5. Responsive Design --- */
+        @media (max-width: 992px) {
+            .pricing-card.popular {
+                transform: scale(1); /* No scaling on smaller screens */
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .pricing-header h1 {
+                font-size: 2rem;
+            }
+            .pricing-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header class="pricing-header">
+        <h1>Find the perfect plan for your AR vision</h1>
+        <p>Start for free and scale up as you grow. All plans include our powerful creation tools.</p>
+    </header>
+
+    <div class="toggle-container">
+        <span>Monthly</span>
+        <label class="toggle-switch">
+            <input type="checkbox" id="billing-toggle">
+            <span class="slider"></span>
+        </label>
+        <span>Yearly <span class="save-badge">Save 16%</span></span>
+    </div>
+
+    <main class="pricing-grid">
+        <div class="pricing-card">
+            <h2>Free</h2>
+            <div class="price">
+                <span class="currency-symbol">₹</span><span class="price-value" data-monthly="0" data-yearly="0">0</span>
+            </div>
+            <div class="billing-period">Free forever</div>
+            <ul class="features">
+                <li>Basic AR tools (Text, Photo, Face AR)</li>
+                <li>1 GB cloud storage</li>
+                <li>Mira watermark on exports</li>
+                <li>Community support only</li>
+            </ul>
+            <a href="#" class="btn">Get Started</a>
+        </div>
+
+        <div class="pricing-card popular">
+            <div class="popular-tag">Most Popular</div>
+            <h2>Pro</h2>
+            <div class="price">
+                <span class="currency-symbol">₹</span><span class="price-value" data-monthly="799" data-yearly="7,999">799</span>
+            </div>
+            <div class="billing-period">
+                per <span class="billing-cycle">month</span>
+            </div>
+            <ul class="features">
+                <li>All AR tools (Video, Logo, Portal, etc.)</li>
+                <li>100 GB cloud storage</li>
+                <li>No watermark on exports</li>
+                <li>Export in HD & 4K</li>
+                <li>Priority customer support</li>
+                <li>Early access to new AR features</li>
+            </ul>
+            <a href="#" class="btn">Start Pro Trial</a>
+        </div>
+
+        <div class="pricing-card">
+            <h2>Business</h2>
+            <div class="price">
+                <span class="currency-symbol">₹</span><span class="price-value" data-monthly="3,499" data-yearly="34,999">3,499</span>
+            </div>
+            <div class="billing-period">
+                per <span class="billing-cycle">month</span>
+            </div>
+            <ul class="features">
+                <li>Unlimited AR usage</li>
+                <li>1 TB cloud storage</li>
+                <li>Team accounts (up to 10 users)</li>
+                <li>API access & integrations</li>
+                <li>Premium 24/7 support</li>
+                <li>Custom branding options</li>
+            </ul>
+            <a href="#" class="btn">Contact Sales</a>
+        </div>
+    </main>
+
+    <section class="faq-section">
+        <h2>Frequently Asked Questions</h2>
+        <details class="faq-item">
+            <summary>Can I use Mira for free?</summary>
+            <p>Absolutely! The Free plan is free forever and gives you access to our basic AR tools, perfect for getting started and exploring the platform.</p>
+        </details>
+        <details class="faq-item">
+            <summary>What payment methods are supported?</summary>
+            <p>We accept all major credit cards (Visa, Mastercard, American Express), as well as UPI, Net Banking, and PayPal for seamless transactions.</p>
+        </details>
+        <details class="faq-item">
+            <summary>Can I cancel anytime?</summary>
+            <p>Yes, you can cancel your subscription at any time. Your plan will remain active until the end of the current billing cycle, and you won't be charged again.</p>
+        </details>
+        <details class="faq-item">
+            <summary>Do I get updates with Pro and Business plans?</summary>
+            <p>Yes! All paying customers receive immediate access to all platform updates. Pro and Business users also get early access to beta features before they're released to everyone else.</p>
+        </details>
+        <details class="faq-item">
+            <summary>Is there a student or non-profit discount?</summary>
+            <p>We believe in supporting education and social causes. Please contact our support team with your credentials, and we'll be happy to discuss available discounts.</p>
+        </details>
+    </section>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const toggle = document.getElementById('billing-toggle');
+        const priceValues = document.querySelectorAll('.price-value');
+        const billingCycles = document.querySelectorAll('.billing-cycle');
+
+        function updatePrices() {
+            const isYearly = toggle.checked;
+
+            priceValues.forEach(priceEl => {
+                priceEl.textContent = isYearly ? priceEl.dataset.yearly : priceEl.dataset.monthly;
+            });
+
+            billingCycles.forEach(cycleEl => {
+                cycleEl.textContent = isYearly ? 'year' : 'month';
+            });
+        }
+
+        toggle.addEventListener('change', updatePrices);
+        
+        // Initialize on page load
+        updatePrices();
+    });
+</script>
+
+</body>
+</html>

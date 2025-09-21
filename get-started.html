@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Mira</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="get-started-page">
+    <div class="container">
+        <div class="card welcome-card fade-in-up">
+            <h1 class="logo">Mira</h1>
+            <p class="tagline">Your WebAR creation hub.</p>
+            
+            <div id="auth-modal">
+                <h2 id="modal-title">Log in to Mira</h2>
+                <div class="form-group">
+                    <label for="emailInput">Email</label>
+                    <input type="email" id="emailInput" placeholder="Enter your email" autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="passwordInput">Password</label>
+                    <input type="password" id="passwordInput" placeholder="Enter your password" autocomplete="current-password">
+                </div>
+                <p class="forgot-password-link">
+                    <a href="#" id="forgot-password-link">Forgot password?</a>
+                </p>
+                <div class="error-message" id="errorDiv"></div>
+                <button class="btn btn-primary" id="actionBtn">Log In</button>
+                <p class="modal-link">
+                    Don't have an account? <a href="#" id="toggle-link">Sign up</a>
+                </p>
+
+                <div class="social-login-separator">
+                    <hr><span>OR</span><hr>
+                </div>
+                <button class="btn btn-social" id="google-btn">
+                    <i class="fab fa-google"></i> Continue with Google
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { auth } from './firebase-config.js';
+        import { 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword,
+            onAuthStateChanged,
+            sendPasswordResetEmail,
+            GoogleAuthProvider,
+            signInWithPopup
+        } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+
+        // Redirect if user is already logged in
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                window.location.href = 'index.html';
+            }
+        });
+
+        const modalTitle = document.getElementById('modal-title');
+        const emailInput = document.getElementById('emailInput');
+        const passwordInput = document.getElementById('passwordInput');
+        const actionBtn = document.getElementById('actionBtn');
+        const errorDiv = document.getElementById('errorDiv');
+        const toggleLink = document.querySelector('.modal-link');
+        const forgotPasswordLink = document.getElementById('forgot-password-link');
+        const googleBtn = document.getElementById('google-btn');
+
+        let isSignup = false;
+
+        function toggleMode() {
+            isSignup = !isSignup;
+            errorDiv.textContent = '';
+            errorDiv.classList.remove('success');
+            if (isSignup) {
+                modalTitle.textContent = 'Sign up for Mira';
+                actionBtn.textContent = 'Sign Up';
+                toggleLink.innerHTML = 'Already have an account? <a href="#" id="toggle-link">Log in</a>';
+                passwordInput.autocomplete = 'new-password';
+                forgotPasswordLink.style.display = 'none';
+            } else {
+                modalTitle.textContent = 'Log in to Mira';
+                actionBtn.textContent = 'Log In';
+                toggleLink.innerHTML = 'Don\'t have an account? <a href="#" id="toggle-link">Sign up</a>';
+                passwordInput.autocomplete = 'current-password';
+                forgotPasswordLink.style.display = 'block';
+            }
+        }
+
+        toggleLink.addEventListener('click', (e) => {
+            if (e.target.id === 'toggle-link') {
+                e.preventDefault();
+                toggleMode();
+            }
+        });
+
+        async function handleAuthAction() {
+            const email = emailInput.value.trim();
+            const password = passwordInput.value.trim();
+            errorDiv.textContent = '';
+            errorDiv.classList.remove('success');
+            
+            if (!email || !password) {
+                errorDiv.textContent = 'Please enter both email and password.';
+                return;
+            }
+
+            actionBtn.classList.add('loading');
+            actionBtn.disabled = true;
+
+            try {
+                if (isSignup) {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                } else {
+                    await signInWithEmailAndPassword(auth, email, password);
+                }
+                // onAuthStateChanged will handle redirect
+            } catch (error) {
+                errorDiv.textContent = error.message.replace('Firebase: ', '');
+            } finally {
+                actionBtn.classList.remove('loading');
+                actionBtn.disabled = false;
+            }
+        }
+        
+        actionBtn.addEventListener('click', handleAuthAction);
+        passwordInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') handleAuthAction();
+        });
+
+        forgotPasswordLink.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const email = emailInput.value.trim();
+            errorDiv.textContent = '';
+            errorDiv.classList.remove('success');
+            if (!email) {
+                errorDiv.textContent = 'Please enter your email to reset the password.';
+                return;
+            }
+            
+            try {
+                await sendPasswordResetEmail(auth, email);
+                errorDiv.textContent = 'Password reset email sent! Check your inbox.';
+                errorDiv.classList.add('success');
+            } catch (error) {
+                errorDiv.textContent = error.message.replace('Firebase: ', '');
+            }
+        });
+
+        googleBtn.addEventListener('click', async () => {
+            try {
+                const provider = new GoogleAuthProvider();
+                await signInWithPopup(auth, provider);
+                // onAuthStateChanged will handle redirect
+            } catch (error) {
+                errorDiv.textContent = error.message.replace('Firebase: ', '');
+            }
+        });
+    </script>
+</body>
+</html>

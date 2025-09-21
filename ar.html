@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mira AR Viewer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-aframe.prod.js"></script>
+
+    <style>
+        body { margin: 0; }
+        .ar-ui-container {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            z-index: 1000;
+            color: white;
+            font-family: sans-serif;
+            background-color: rgba(0,0,0,0.7);
+            flex-direction: column;
+        }
+        #ar-instructions {
+            position: fixed;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: white;
+            font-family: sans-serif;
+            background-color: rgba(0,0,0,0.5);
+            padding: 10px 0;
+            z-index: 1001;
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="loader" class="ar-ui-container">
+        <h1><i class="fas fa-spinner fa-spin"></i> Loading AR Experience...</h1>
+    </div>
+
+    <div id="ar-instructions" class="hidden">
+        <p>AR experience is ready!</p>
+    </div>
+    
+    <a-scene mindar-face embedded vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights">
+        
+        <a-camera active="false" position="0 0 0"></a-camera>
+        
+        <a-entity mindar-face-target="anchorIndex: 1" id="ar-target">
+            </a-entity>
+
+    </a-scene>
+    
+    <script type="module">
+        import './ar-data.js';
+
+        const loader = document.getElementById('loader');
+        const instructions = document.getElementById('ar-instructions');
+        const arTarget = document.getElementById('ar-target');
+        const scene = document.querySelector('a-scene');
+
+        async function initializeAr() {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const experienceId = params.get('id');
+                if (!experienceId) throw new Error("No Experience ID found in URL.");
+
+                const exp = await window.MiraData.getExperience(experienceId);
+                if (!exp) throw new Error("Experience data could not be loaded.");
+
+                let entity = document.createElement('a-entity');
+                entity.setAttribute('position', '0 0 0'); // Position is relative to the face anchor
+                
+                switch (exp.type) {
+                    case 'text':
+                        entity.setAttribute('text', {
+                            value: exp.textData.content,
+                            color: exp.textData.color,
+                            align: 'center',
+                            width: 4
+                        });
+                        entity.setAttribute('rotation', '0 0 0'); // No need for -90
+                        entity.setAttribute('scale', '0.5 0.5 0.5');
+                        break;
+                    
+                    case 'portal':
+                        const sky = document.createElement('a-sky');
+                        sky.setAttribute('src', exp.fileUrls[0].url);
+                        entity.appendChild(sky);
+                        break;
+
+                    case 'model':
+                        entity.setAttribute('gltf-model', `url(${exp.fileUrls[0].url})`);
+                        entity.setAttribute('rotation', '0 0 0'); 
+                        entity.setAttribute('scale', '0.5 0.5 0.5'); 
+                        break;
+                        
+                    default:
+                        throw new Error(`Unsupported type: ${exp.type}`);
+                }
+                
+                arTarget.appendChild(entity);
+
+            } catch (error) {
+                loader.innerHTML = `<h1>Error: ${error.message}</h1><p>Please check the console for details.</p>`;
+                console.error("AR Initialization Error:", error);
+            }
+        }
+        
+        // Listen for the 'arReady' event from MindAR
+        scene.addEventListener('arReady', () => {
+            loader.classList.add('hidden');
+            instructions.classList.remove('hidden');
+            initializeAr();
+        });
+
+    </script>
+</body>
+</html>
